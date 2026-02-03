@@ -36,14 +36,15 @@ jobs:
 
     - name: Test with Coverage Profile
       # 입력받은 coverage_profile 값을 시스템 속성으로 전달하여 테스트 실행
+      # 주의: 단위 테스트가 하나라도 실패하면 Gradle 빌드가 실패하고, 워크플로우가 여기서 즉시 중단됩니다.
       run: ./gradlew test -DcoverageProfile=${{ inputs.coverage_profile }} jacocoTestReport
 
     - name: Verify Coverage
-      # 커버리지 검증 실행 (50% 미만이면 여기서 실패)
+      # 커버리지 검증 실행 (50% 미만이면 여기서 실패하여 워크플로우 중단)
       run: ./gradlew jacocoTestCoverageVerification
 
     - name: Build with Gradle
-      if: success() # 이전 단계(커버리지 검증)가 성공했을 때만 실행
+      if: success() # 이전 단계(테스트 및 커버리지 검증)가 모두 성공했을 때만 실행
       # 테스트는 이미 수행했으므로 생략하고 빌드만 수행
       run: ./gradlew build -x test
 
