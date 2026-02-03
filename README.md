@@ -1,79 +1,124 @@
-# Jacoco 활용 프로젝트
+# Jacoco & GitHub Actions 커버리지 체크 프로젝트
 
-이 프로젝트는 Spring Boot 애플리케이션에서 Jacoco를 사용하여 코드 커버리지를 측정하는 방법을 보여줍니다. GitHub Actions를 통해 다양한 커버리지 프로파일을 선택하여 실행할 수 있습니다.
+이 프로젝트는 Spring Boot 애플리케이션에 **Jacoco**를 적용하여 코드 커버리지를 측정하고, **GitHub Actions**를 통해 커버리지 달성률에 따라 빌드 및 배포를 제어하는 예제입니다.
 
-## 주요 기능
+## 🚀 주요 기능
 
-- **Spring Boot 3.5.10** 기반 애플리케이션.
-- **Jacoco**를 이용한 코드 커버리지 분석.
-- **JUnit 5**와 태그(Tag) 기능을 활용한 테스트 시나리오 분리.
-- **GitHub Actions** 워크플로우를 통한 수동 실행 및 커버리지 프로파일 선택.
-- **Docker** 이미지 빌드 및 GitHub Container Registry (GHCR) 배포.
+*   **Spring Boot 3.5.10**: 최신 Spring Boot 기반 웹 애플리케이션.
+*   **Jacoco 통합**: 코드 커버리지 분석 및 리포트 생성.
+*   **동적 테스트 프로파일**: JUnit 5 `@Tag`를 활용하여 상황별(20%, 55%, 80%) 테스트 시나리오 구성.
+*   **커버리지 검증**: 커버리지 **50% 미만**일 경우 빌드 실패 처리.
+*   **GitHub Actions 워크플로우**:
+    *   `workflow_dispatch`를 통한 수동 실행 (프로파일 선택 가능).
+    *   테스트 -> 커버리지 검증 -> 빌드 -> Docker 이미지 생성 -> GHCR 배포 파이프라인.
+*   **Docker 멀티 스테이지 빌드**: Gradle 이미지를 이용한 빌드와 JRE 기반의 경량화된 실행 이미지 구성.
 
-## 커버리지 프로파일
+---
 
-이 프로젝트는 JUnit 5의 태그 기능을 사용하여 세 가지 커버리지 프로파일을 구성했습니다.
+## 📊 커버리지 프로파일 (Coverage Profiles)
 
-1.  **20% 프로파일**: `base` 태그가 붙은 테스트만 실행합니다.
-    -   목표: 낮은 커버리지 상황 시뮬레이션 (빌드 실패 예상).
-2.  **55% 프로파일**: `base` 및 `medium-add` 태그가 붙은 테스트를 실행합니다.
-    -   목표: 중간 수준의 커버리지 (50% 기준 통과 목표).
-3.  **80% 프로파일**: `base`, `medium-add`, `high-add` 태그가 붙은 모든 테스트를 실행합니다.
-    -   목표: 높은 커버리지 달성.
+이 프로젝트는 테스트 실행 시 시스템 속성(`-DcoverageProfile`)을 통해 실행할 테스트 범위를 조절합니다.
 
-## 빌드 및 테스트
+| 프로파일 | 실행 태그 (Tags) | 포함 메소드 | 예상 커버리지 | 결과 |
+| :--- | :--- | :--- | :--- | :--- |
+| **20** | `base` | `add` | **~20%** | ❌ **실패** (< 50%) |
+| **55** | `base`, `medium-add` | `add`, `subtract`, `multiply` | **~60%** | ✅ **통과** (>= 50%) |
+| **80** | `base`, `medium-add`, `high-add` | `add`, `subtract`, `multiply`, `divide`, `modulus` | **100%** | ✅ **통과** |
 
-### 로컬 테스트 방법
+---
 
-로컬 환경에서 특정 프로파일로 테스트를 실행하려면 다음 명령어를 사용하세요:
+## 🛠️ 로컬 빌드 및 테스트
+
+로컬 환경에서 각 프로파일별로 테스트를 수행하고 리포트를 확인할 수 있습니다.
+
+### 1. 테스트 실행
 
 ```bash
-# 20% 프로파일 실행
+# 20% 프로파일 (빌드 실패 예상)
 ./gradlew test -DcoverageProfile=20 jacocoTestReport
 
-# 55% 프로파일 실행
+# 55% 프로파일 (빌드 성공 예상)
 ./gradlew test -DcoverageProfile=55 jacocoTestReport
 
-# 80% 프로파일 실행
+# 80% 프로파일 (전체 테스트)
 ./gradlew test -DcoverageProfile=80 jacocoTestReport
 ```
 
-### 커버리지 검증
+### 2. 커버리지 검증
 
-코드 커버리지가 **50%** 미만일 경우 빌드가 실패하도록 설정되어 있습니다.
+커버리지 기준(50%)을 만족하는지 확인합니다.
 
 ```bash
 ./gradlew jacocoTestCoverageVerification
 ```
 
-## GitHub Actions 워크플로우
+### 3. 리포트 확인
 
-`Jacoco Coverage Check` 워크플로우는 `workflow_dispatch`를 통해 수동으로 트리거됩니다.
+테스트 실행 후 아래 경로에서 HTML 리포트를 확인할 수 있습니다.
+*   `build/reports/jacoco/test/html/index.html`
 
-1.  GitHub 저장소의 **Actions** 탭으로 이동합니다.
-2.  **Jacoco Coverage Check** 워크플로우를 선택합니다.
-3.  **Run workflow** 버튼을 클릭합니다.
-4.  원하는 **Coverage Profile** (20, 55, 80 중 하나)을 선택합니다.
+---
 
-### 워크플로우 단계
+## 🤖 GitHub Actions 워크플로우
 
-1.  **Checkout**: 소스 코드를 체크아웃합니다.
-2.  **Set up JDK 17**: Java 17 환경을 설정합니다.
-3.  **Test with Coverage Profile**: 선택한 프로파일에 따라 테스트를 실행합니다.
-4.  **Verify Coverage**: 커버리지가 50% 이상인지 검증합니다.
-    -   50% 미만이면 여기서 워크플로우가 실패하고 중단됩니다.
-5.  **Build with Gradle**: 애플리케이션 JAR를 빌드합니다 (테스트는 이미 수행했으므로 생략).
-6.  **Log in to GHCR**: GitHub Container Registry에 로그인합니다.
-7.  **Build and push Docker image**: Docker 이미지를 빌드하고 `ghcr.io/<owner>/<repo>:latest`로 푸시합니다.
+GitHub Actions 탭에서 `Jacoco Coverage Check` 워크플로우를 수동으로 실행하여 CI/CD 파이프라인을 테스트할 수 있습니다.
 
-## Docker
+1.  **Actions** 탭으로 이동.
+2.  좌측의 **Jacoco Coverage Check** 선택.
+3.  **Run workflow** 버튼 클릭.
+4.  **Coverage Profile** 선택 (`20`, `55`, `80`).
+5.  **Run workflow** 클릭.
 
-Dockerfile은 `eclipse-temurin:17-jdk-alpine`을 기반으로 하여 경량화된 이미지를 생성합니다.
+### 워크플로우 단계 상세
+
+1.  **Test with Coverage Profile**: 선택한 프로파일로 단위 테스트 실행 및 Jacoco 리포트 생성.
+2.  **Verify Coverage**: 커버리지가 50% 이상인지 검증.
+3.  **Build with Gradle**: 테스트를 제외하고 애플리케이션 빌드 (`bootJar`).
+4.  **Build and push Docker image**: Docker 이미지 빌드 후 GitHub Container Registry(GHCR)에 배포.
+
+#### ⚠️ 커버리지 검증 실패 시 (예: Profile 20 선택)
+
+만약 테스트 커버리지가 설정된 기준(**50%**)에 미치지 못하면 다음과 같이 동작합니다:
+
+*   `Verify Coverage` 단계에서 **실패(Failure)** 처리되어 워크플로우가 즉시 중단됩니다.
+*   이후 단계인 **빌드(Build)** 및 **Docker 이미지 배포(Push)**는 실행되지 않습니다.
+*   이를 통해 품질 기준을 만족하지 못한 코드가 운영 환경에 배포되는 것을 원천적으로 차단합니다.
+
+---
+
+## 🐳 Docker 빌드 전략
+
+이 프로젝트는 **멀티 스테이지 빌드(Multi-stage Build)**를 사용하여 이미지 크기를 최적화했습니다.
+
+*   **Builder Stage**: `gradle:jdk17-alpine` 이미지를 사용하여 소스 코드를 빌드합니다.
+*   **Runner Stage**: `eclipse-temurin:17-jre-alpine` 이미지를 사용하여 실행에 필요한 JAR 파일만 포함합니다.
 
 ```dockerfile
-FROM eclipse-temurin:17-jdk-alpine
+# 1단계: 빌드 (Builder)
+FROM gradle:jdk17-alpine AS builder
+WORKDIR /home/gradle/project
+COPY --chown=gradle:gradle . .
+RUN gradle bootJar -x test
+
+# 2단계: 실행 (Runner)
+FROM eclipse-temurin:17-jre-alpine
 VOLUME /tmp
-ARG JAR_FILE=build/libs/*.jar
-COPY ${JAR_FILE} app.jar
+COPY --from=builder /home/gradle/project/build/libs/*.jar app.jar
 ENTRYPOINT ["java","-jar","/app.jar"]
+```
+
+---
+
+## 📂 프로젝트 구조
+
+```
+use-jacoco/
+├── .github/workflows/
+│   └── jacoco-check.yml    # GitHub Actions 워크플로우 설정
+├── src/
+│   ├── main/java/.../CalculatorService.java      # 비즈니스 로직
+│   └── test/java/.../CalculatorServiceTest.java  # JUnit 5 테스트 (Tag 적용)
+├── build.gradle            # Gradle 빌드 스크립트 (Jacoco 설정 포함)
+├── Dockerfile              # 멀티 스테이지 Docker 빌드 설정
+└── README.md               # 프로젝트 설명서
 ```
